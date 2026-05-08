@@ -1,0 +1,15 @@
+{
+  "name": "@openmembrain/mcp-server",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "openmembrain-mcp-server": "./src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@openmembrain/core": "0.1.0",
+    "@openmembrain/storage": "0.1.0",
+    "zod": "^4.4.3"
+  }
+}
