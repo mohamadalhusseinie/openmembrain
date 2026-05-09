@@ -1,6 +1,6 @@
 import { basename, join, resolve } from "node:path";
 import { cwd, env } from "node:process";
-import { MemoryApprovalService, MemoryPipeline, MockMemoryExtractor } from "@openmembrain/core";
+import { MemoryApprovalService, MemoryPipeline, createExtractor, loadExtractionConfig } from "@openmembrain/core";
 import { StaticMemoryExportService } from "@openmembrain/exporters";
 import { JsonAuditLogStore, JsonDiagnosticsLogStore, JsonMemoryStore, JsonPendingCandidateStore } from "@openmembrain/storage";
 
@@ -30,7 +30,7 @@ export function createOpenMembrainContext(
   const auditLogStore = new JsonAuditLogStore(storageDir);
   const diagnosticsLogStore = new JsonDiagnosticsLogStore(storageDir);
   const pipeline = new MemoryPipeline({
-    extractor: new MockMemoryExtractor(),
+    extractor: createExtractor(loadExtractionConfig()),
     memoryStore,
     pendingCandidateStore,
     auditLogStore
