@@ -8,6 +8,7 @@ export * from "./extraction/ExtractionConfig";
 export * from "./extraction/extractionPrompt";
 export * from "./extraction/loadExtractionConfig";
 export * from "./extraction/MemoryExtractor";
+export * from "./extraction/parseExtractionResponse";
 export * from "./extraction/MockMemoryExtractor";
 export * from "./filtering/NoiseFilter";
 export * from "./filtering/SafetyFilter";
