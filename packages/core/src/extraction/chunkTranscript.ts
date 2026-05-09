@@ -26,6 +26,17 @@ export function chunkTranscript(text: string, maxChunkCharacters?: number): stri
       // Split the large paragraph by lines
       const lines = paragraph.split(/\n/);
       for (const line of lines) {
+        // Hard-split oversized single lines that exceed maxSize
+        if (line.length > maxSize) {
+          if (current.trim()) {
+            chunks.push(current.trim());
+            current = "";
+          }
+          for (let offset = 0; offset < line.length; offset += maxSize) {
+            chunks.push(line.slice(offset, offset + maxSize));
+          }
+          continue;
+        }
         if (current.length + line.length + 1 > maxSize && current.trim()) {
           chunks.push(current.trim());
           current = "";

@@ -1,7 +1,9 @@
 import { basename, join, resolve } from "node:path";
 import { cwd, env } from "node:process";
 import { MemoryApprovalService, MemoryPipeline, createExtractor, loadExtractionConfig } from "@openmembrain/core";
+import type { ExtractionDiagnostics } from "@openmembrain/core";
 import { StaticMemoryExportService } from "@openmembrain/exporters";
+import { createId, nowIso } from "@openmembrain/shared";
 import { JsonAuditLogStore, JsonDiagnosticsLogStore, JsonMemoryStore, JsonPendingCandidateStore } from "@openmembrain/storage";
 
 export interface OpenMembrainMcpContext {
@@ -29,8 +31,30 @@ export function createOpenMembrainContext(
   const pendingCandidateStore = new JsonPendingCandidateStore(storageDir);
   const auditLogStore = new JsonAuditLogStore(storageDir);
   const diagnosticsLogStore = new JsonDiagnosticsLogStore(storageDir);
+
+  const onDiagnostics = (diagnostics: ExtractionDiagnostics): void => {
+    const severity = diagnostics.errors.length > 0 ? "warning" as const : "info" as const;
+    void diagnosticsLogStore.append({
+      id: createId("diag"),
+      projectId: defaultProjectId,
+      severity,
+      code: diagnostics.errors.length > 0 ? "EXTRACTION_PROVIDER_ERROR" : "EXTRACTION_COMPLETE",
+      message: `Extraction processed ${diagnostics.chunks} chunk(s): ${diagnostics.candidatesExtracted} candidate(s) extracted, ${diagnostics.errors.length} error(s).`,
+      operation: "extraction",
+      source: "core",
+      createdAt: nowIso(),
+      details: {
+        chunks: diagnostics.chunks,
+        totalPromptTokens: diagnostics.totalPromptTokens,
+        totalCompletionTokens: diagnostics.totalCompletionTokens,
+        candidatesExtracted: diagnostics.candidatesExtracted,
+        errors: diagnostics.errors,
+      },
+    });
+  };
+
   const pipeline = new MemoryPipeline({
-    extractor: createExtractor(loadExtractionConfig()),
+    extractor: createExtractor(loadExtractionConfig(), { onDiagnostics }),
     memoryStore,
     pendingCandidateStore,
     auditLogStore

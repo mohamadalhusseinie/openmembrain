@@ -2,11 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   buildSystemPrompt,
   buildUserPrompt,
-} from "../../packages/core/src/extraction/extractionPrompt";
-import {
   memoryTypes,
   recommendedActions,
-} from "../../packages/core/src/types/MemoryCandidate";
+} from "@openmembrain/core";
 
 describe("buildSystemPrompt", () => {
   const prompt = buildSystemPrompt();

@@ -8,6 +8,7 @@ import {
   type Confidence,
   type MemoryCandidate,
   type MemoryScope,
+  type MemorySource,
   type MemoryType,
   type RecommendedAction,
   type Sensitivity,
@@ -24,9 +25,15 @@ function safeEnum<T extends string>(
     : fallback;
 }
 
+export interface ParseExtractionOptions {
+  sessionId?: string | undefined;
+  tool?: string | undefined;
+}
+
 export function parseExtractionResponse(
   raw: string,
   projectId: string,
+  options?: ParseExtractionOptions,
 ): MemoryCandidate[] {
   let parsed: unknown;
   try {
@@ -60,6 +67,14 @@ export function parseExtractionResponse(
     if (typeof rec.content !== "string" || rec.content.length === 0) continue;
 
     const now = nowIso();
+    const source: MemorySource = { kind: "session" };
+    if (options?.sessionId !== undefined) {
+      source.sessionId = options.sessionId;
+    }
+    if (options?.tool !== undefined) {
+      source.tool = options.tool;
+    }
+
     results.push({
       id: createId("cand"),
       projectId,
@@ -68,7 +83,7 @@ export function parseExtractionResponse(
       scope: safeEnum(rec.scope, memoryScopes, "unknown"),
       confidence: safeEnum(rec.confidence, confidenceValues, "medium"),
       sensitivity: safeEnum(rec.sensitivity, sensitivityValues, "internal"),
-      source: { kind: "session" },
+      source,
       reason:
         typeof rec.reason === "string" ? rec.reason : "Extracted by LLM",
       recommendedAction: safeEnum(

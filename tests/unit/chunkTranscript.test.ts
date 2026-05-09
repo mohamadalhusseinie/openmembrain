@@ -53,6 +53,35 @@ describe("chunkTranscript", () => {
     }
   });
 
+  it("hard-splits oversized single lines that exceed maxSize", () => {
+    // A single line with no newlines that exceeds maxSize
+    const longLine = "X".repeat(120);
+    const chunks = chunkTranscript(longLine, 50);
+    expect(chunks).toEqual([
+      "X".repeat(50),
+      "X".repeat(50),
+      "X".repeat(20),
+    ]);
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeLessThanOrEqual(50);
+    }
+  });
+
+  it("hard-splits oversized line within a multi-line paragraph", () => {
+    const shortLine = "A".repeat(10);
+    const longLine = "B".repeat(80);
+    // Combine as a single paragraph (single newlines) exceeding maxSize
+    const text = [shortLine, longLine, shortLine].join("\n");
+    const chunks = chunkTranscript(text, 30);
+    // The short lines should fit in their own chunks, the long line should be hard-split
+    const joined = chunks.join("");
+    expect(joined).toContain(shortLine);
+    expect(joined).toContain(longLine);
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeLessThanOrEqual(30);
+    }
+  });
+
   it("preserves all content (no data loss)", () => {
     const paragraphs = Array.from({ length: 10 }, (_, i) => `Para ${i}: ${"w".repeat(40)}`);
     const text = paragraphs.join("\n\n");

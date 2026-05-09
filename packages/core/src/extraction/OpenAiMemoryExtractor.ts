@@ -7,11 +7,17 @@ import { buildSystemPrompt, buildUserPrompt } from "./extractionPrompt";
 import { chunkTranscript } from "./chunkTranscript";
 import { parseExtractionResponse } from "./parseExtractionResponse";
 
+export interface ExtractionChunkError {
+  chunk: number;
+  message: string;
+}
+
 export interface ExtractionDiagnostics {
   chunks: number;
   totalPromptTokens: number;
   totalCompletionTokens: number;
   candidatesExtracted: number;
+  errors: ExtractionChunkError[];
 }
 
 export type OnExtractionDiagnostics = (
@@ -53,8 +59,10 @@ export class OpenAiMemoryExtractor implements MemoryExtractor {
     const allCandidates: MemoryCandidate[] = [];
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
+    const errors: ExtractionChunkError[] = [];
 
     for (const chunk of chunks) {
+      const chunkIndex = chunks.indexOf(chunk);
       try {
         const response = await this.client.chat.completions.create({
           model: this.model,
@@ -68,13 +76,18 @@ export class OpenAiMemoryExtractor implements MemoryExtractor {
 
         const content = response.choices[0]?.message?.content;
         if (content) {
-          const candidates = parseExtractionResponse(content, input.projectId);
+          const candidates = parseExtractionResponse(content, input.projectId, {
+            ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
+            ...(input.tool !== undefined ? { tool: input.tool } : {}),
+          });
           allCandidates.push(...candidates);
         }
 
         totalPromptTokens += response.usage?.prompt_tokens ?? 0;
         totalCompletionTokens += response.usage?.completion_tokens ?? 0;
-      } catch {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push({ chunk: chunkIndex, message });
         continue;
       }
     }
@@ -94,6 +107,7 @@ export class OpenAiMemoryExtractor implements MemoryExtractor {
       totalPromptTokens,
       totalCompletionTokens,
       candidatesExtracted: deduplicated.length,
+      errors,
     });
 
     return deduplicated;

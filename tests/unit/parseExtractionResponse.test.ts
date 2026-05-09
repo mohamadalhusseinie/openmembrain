@@ -108,4 +108,24 @@ describe("parseExtractionResponse", () => {
     expect(result[1]!.tags).toEqual([]);
     expect(result[2]!.tags).toEqual([]);
   });
+
+  it("attaches sessionId and tool to source when provided", () => {
+    const raw = JSON.stringify([{ content: "some fact" }]);
+    const result = parseExtractionResponse(raw, projectId, {
+      sessionId: "sess_123",
+      tool: "opencode",
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.source).toEqual({
+      kind: "session",
+      sessionId: "sess_123",
+      tool: "opencode",
+    });
+  });
+
+  it("omits sessionId and tool from source when not provided", () => {
+    const raw = JSON.stringify([{ content: "some fact" }]);
+    const result = parseExtractionResponse(raw, projectId);
+    expect(result[0]!.source).toEqual({ kind: "session" });
+  });
 });

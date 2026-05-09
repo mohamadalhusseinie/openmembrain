@@ -1,5 +1,5 @@
 import type { Result } from "@openmembrain/shared";
-import { OpenMembrainError } from "../errors/OpenMembrainError.js";
+import { OpenMembrainError } from "../errors/OpenMembrainError";
 
 export const extractionProviders = ["mock", "openai", "anthropic", "local"] as const;
 

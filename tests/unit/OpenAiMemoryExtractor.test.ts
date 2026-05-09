@@ -3,8 +3,8 @@ import type OpenAI from "openai";
 import {
   OpenAiMemoryExtractor,
   type OnExtractionDiagnostics,
-} from "../../packages/core/src/extraction/OpenAiMemoryExtractor";
-import type { ExtractionConfig } from "../../packages/core/src/extraction/ExtractionConfig";
+  type ExtractionConfig,
+} from "@openmembrain/core";
 
 function createMockClient(responses: string[]) {
   let callIndex = 0;
@@ -202,6 +202,7 @@ describe("OpenAiMemoryExtractor", () => {
       totalPromptTokens: 100,
       totalCompletionTokens: 50,
       candidatesExtracted: 1,
+      errors: [],
     });
   });
 

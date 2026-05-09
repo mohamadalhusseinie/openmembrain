@@ -47,9 +47,9 @@ DO NOT include any of the following:
 - "ask_user": architecture decisions, security rules, workflow rules, broad conventions, or when the memory might conflict with existing knowledge
 - "reject": secrets, credentials, unverified guesses, temporary logs, large code blocks, generic advice, emotional commentary
 
-If no durable project knowledge is found in the session, return an empty array: []
+If no durable project knowledge is found in the session, return: {"memories": []}
 
-Return ONLY the JSON array. No markdown fences, no explanation.`;
+Return ONLY a JSON object with a "memories" key containing the array. No markdown fences, no explanation.`;
 }
 
 export function buildUserPrompt(sessionText: string): string {

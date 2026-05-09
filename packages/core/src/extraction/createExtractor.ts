@@ -1,9 +1,9 @@
-import { OpenMembrainError } from "../errors/OpenMembrainError.js";
-import type { ExtractionConfig } from "./ExtractionConfig.js";
-import { validateExtractionConfig } from "./ExtractionConfig.js";
-import type { MemoryExtractor } from "./MemoryExtractor.js";
-import { MockMemoryExtractor } from "./MockMemoryExtractor.js";
-import { OpenAiMemoryExtractor, type OnExtractionDiagnostics } from "./OpenAiMemoryExtractor.js";
+import { OpenMembrainError } from "../errors/OpenMembrainError";
+import type { ExtractionConfig } from "./ExtractionConfig";
+import { validateExtractionConfig } from "./ExtractionConfig";
+import type { MemoryExtractor } from "./MemoryExtractor";
+import { MockMemoryExtractor } from "./MockMemoryExtractor";
+import { OpenAiMemoryExtractor, type OnExtractionDiagnostics } from "./OpenAiMemoryExtractor";
 
 export interface CreateExtractorOptions {
   onDiagnostics?: OnExtractionDiagnostics | undefined;
