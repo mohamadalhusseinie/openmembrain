@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { MemoryScope, MemorySearchOptions, MemoryType, SessionInput } from "@openmembrain/core";
+import { OpenMembrainError, type DiagnosticSeverity, type MemoryScope, type MemorySearchOptions, type MemoryType, type SessionInput } from "@openmembrain/core";
 import type { ExportTarget } from "@openmembrain/exporters";
 import type { OpenMembrainMcpContext } from "../context";
 import { resolveProjectId } from "../context";
@@ -15,38 +15,38 @@ const ruleTypes: MemoryType[] = [
 ];
 
 export interface ProjectScopedInput {
-  projectId?: string;
+  projectId?: string | undefined;
 }
 
 export interface ProposeMemoryInput extends ProjectScopedInput {
-  transcript?: string;
-  summary?: string;
-  tool?: string;
-  sessionId?: string;
-  metadata?: Record<string, string | number | boolean>;
+  transcript?: string | undefined;
+  summary?: string | undefined;
+  tool?: string | undefined;
+  sessionId?: string | undefined;
+  metadata?: Record<string, string | number | boolean> | undefined;
 }
 
 export interface GetProjectRulesInput extends ProjectScopedInput {
-  scope?: MemoryScope;
-  limit?: number;
+  scope?: MemoryScope | undefined;
+  limit?: number | undefined;
 }
 
 export interface GetRelevantContextInput extends ProjectScopedInput {
   query: string;
-  scope?: MemoryScope;
-  limit?: number;
+  scope?: MemoryScope | undefined;
+  limit?: number | undefined;
 }
 
 export interface SearchMemoryInput extends ProjectScopedInput {
-  query?: string;
-  scopes?: MemoryScope[];
-  types?: MemoryType[];
-  tags?: string[];
-  limit?: number;
+  query?: string | undefined;
+  scopes?: MemoryScope[] | undefined;
+  types?: MemoryType[] | undefined;
+  tags?: string[] | undefined;
+  limit?: number | undefined;
 }
 
 export interface ListMemoryCandidatesInput extends ProjectScopedInput {
-  limit?: number;
+  limit?: number | undefined;
 }
 
 export interface ApproveMemoryCandidateInput extends ProjectScopedInput {
@@ -55,20 +55,34 @@ export interface ApproveMemoryCandidateInput extends ProjectScopedInput {
 
 export interface RejectMemoryCandidateInput extends ProjectScopedInput {
   candidateId: string;
-  reason?: string;
+  reason?: string | undefined;
 }
 
 export interface ExportStaticMemoryFilesInput extends ProjectScopedInput {
-  targets?: ExportTarget[];
-  outputDir?: string;
-  includeConfidential?: boolean;
+  targets?: ExportTarget[] | undefined;
+  outputDir?: string | undefined;
+  includeConfidential?: boolean | undefined;
+}
+
+export interface GetDiagnosticsInput extends ProjectScopedInput {
+  severity?: DiagnosticSeverity | undefined;
+  code?: string | undefined;
+  limit?: number | undefined;
+}
+
+export interface ListAuditLogInput extends ProjectScopedInput {
+  limit?: number | undefined;
 }
 
 export function createToolHandlers(context: OpenMembrainMcpContext) {
   return {
     proposeMemoryFromSession: async (input: ProposeMemoryInput) => {
       if (!input.transcript && !input.summary) {
-        throw new Error("Either transcript or summary is required.");
+        throw new OpenMembrainError({
+          code: "VALIDATION_ERROR",
+          message: "Either transcript or summary is required.",
+          safeMessage: "Either a session transcript or summary is required."
+        });
       }
 
       const sessionInput: SessionInput = {
@@ -174,6 +188,26 @@ export function createToolHandlers(context: OpenMembrainMcpContext) {
       }
 
       return context.exportService.write(request);
+    },
+
+    getDiagnostics: async (input: GetDiagnosticsInput) => {
+      const projectId = resolveProjectId(context, input.projectId);
+      const query = {
+        limit: input.limit ?? 100
+      };
+      if (input.severity) {
+        Object.assign(query, { severity: input.severity });
+      }
+      if (input.code) {
+        Object.assign(query, { code: input.code });
+      }
+      return context.diagnosticsLogStore.list(projectId, query);
+    },
+
+    listAuditLog: async (input: ListAuditLogInput) => {
+      const projectId = resolveProjectId(context, input.projectId);
+      const events = await context.auditLogStore.list(projectId);
+      return events.sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, input.limit ?? 100);
     }
   };
 }

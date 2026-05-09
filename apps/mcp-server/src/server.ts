@@ -1,12 +1,16 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OpenMembrainMcpContext } from "./context";
+import { createId, nowIso } from "@openmembrain/shared";
+import { normalizeOpenMembrainError } from "@openmembrain/core";
+import { resolveProjectId, type OpenMembrainMcpContext } from "./context";
 import { createToolHandlers } from "./tools/handlers";
 import {
   approveMemoryCandidateSchema,
   exportStaticMemoryFilesSchema,
+  getDiagnosticsSchema,
   getProjectRulesSchema,
   getRelevantContextSchema,
+  listAuditLogSchema,
   listMemoryCandidatesSchema,
   proposeMemoryFromSessionSchema,
   rejectMemoryCandidateSchema,
@@ -28,7 +32,8 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
         "Analyze a session transcript or summary, reject unsafe/noisy content, auto-save low-risk memory, and queue important candidates.",
       inputSchema: proposeMemoryFromSessionSchema
     },
-    async (input) => jsonResult(await handlers.proposeMemoryFromSession(input))
+    async (input) =>
+      safeJsonResult(context, "propose_memory_from_session", input, () => handlers.proposeMemoryFromSession(input))
   );
 
   server.registerTool(
@@ -38,7 +43,7 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
       description: "Return saved rules, decisions, gotchas, and constraints for a project.",
       inputSchema: getProjectRulesSchema
     },
-    async (input) => jsonResult(await handlers.getProjectRules(input))
+    async (input) => safeJsonResult(context, "get_project_rules", input, () => handlers.getProjectRules(input))
   );
 
   server.registerTool(
@@ -48,7 +53,7 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
       description: "Return saved memory relevant to a query for future AI coding sessions.",
       inputSchema: getRelevantContextSchema
     },
-    async (input) => jsonResult(await handlers.getRelevantContext(input))
+    async (input) => safeJsonResult(context, "get_relevant_context", input, () => handlers.getRelevantContext(input))
   );
 
   server.registerTool(
@@ -58,7 +63,7 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
       description: "Search saved OpenMembrain memory by query, scope, type, tag, or project.",
       inputSchema: searchMemorySchema
     },
-    async (input) => jsonResult(await handlers.searchMemory(input))
+    async (input) => safeJsonResult(context, "search_memory", input, () => handlers.searchMemory(input))
   );
 
   server.registerTool(
@@ -68,7 +73,7 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
       description: "List pending memory candidates waiting for developer approval.",
       inputSchema: listMemoryCandidatesSchema
     },
-    async (input) => jsonResult(await handlers.listMemoryCandidates(input))
+    async (input) => safeJsonResult(context, "list_memory_candidates", input, () => handlers.listMemoryCandidates(input))
   );
 
   server.registerTool(
@@ -78,7 +83,8 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
       description: "Approve a pending candidate and persist it as local project memory.",
       inputSchema: approveMemoryCandidateSchema
     },
-    async (input) => jsonResult(await handlers.approveMemoryCandidate(input))
+    async (input) =>
+      safeJsonResult(context, "approve_memory_candidate", input, () => handlers.approveMemoryCandidate(input))
   );
 
   server.registerTool(
@@ -88,7 +94,7 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
       description: "Reject and remove a pending memory candidate.",
       inputSchema: rejectMemoryCandidateSchema
     },
-    async (input) => jsonResult(await handlers.rejectMemoryCandidate(input))
+    async (input) => safeJsonResult(context, "reject_memory_candidate", input, () => handlers.rejectMemoryCandidate(input))
   );
 
   server.registerTool(
@@ -99,7 +105,28 @@ export function createOpenMembrainMcpServer(context: OpenMembrainMcpContext): Mc
         "Generate fallback instruction files such as AGENTS.md, CLAUDE.md, Copilot instructions, Cursor rules, and docs/ai/project-memory.md.",
       inputSchema: exportStaticMemoryFilesSchema
     },
-    async (input) => jsonResult(await handlers.exportStaticMemoryFiles(input))
+    async (input) =>
+      safeJsonResult(context, "export_static_memory_files", input, () => handlers.exportStaticMemoryFiles(input))
+  );
+
+  server.registerTool(
+    "get_diagnostics",
+    {
+      title: "Get Diagnostics",
+      description: "Return recent OpenMembrain diagnostics for user-visible troubleshooting.",
+      inputSchema: getDiagnosticsSchema
+    },
+    async (input) => safeJsonResult(context, "get_diagnostics", input, () => handlers.getDiagnostics(input))
+  );
+
+  server.registerTool(
+    "list_audit_log",
+    {
+      title: "List Audit Log",
+      description: "Return recent OpenMembrain audit events for memory pipeline activity.",
+      inputSchema: listAuditLogSchema
+    },
+    async (input) => safeJsonResult(context, "list_audit_log", input, () => handlers.listAuditLog(input))
   );
 
   return server;
@@ -114,4 +141,68 @@ function jsonResult(value: unknown): CallToolResult {
       }
     ]
   };
+}
+
+export async function safeJsonResult(
+  context: OpenMembrainMcpContext,
+  operation: string,
+  input: unknown,
+  callback: () => Promise<unknown>
+): Promise<CallToolResult> {
+  try {
+    return jsonResult(await callback());
+  } catch (error) {
+    const normalized = normalizeOpenMembrainError(error);
+    const diagnosticId = createId("diag");
+    const projectId = projectIdFromInput(context, input);
+
+    try {
+      const diagnosticEvent = {
+        id: diagnosticId,
+        projectId,
+        severity: "error",
+        code: normalized.code,
+        message: normalized.safeMessage,
+        operation,
+        source: "mcp-server",
+        createdAt: nowIso()
+      } as const;
+
+      await context.diagnosticsLogStore.append(
+        normalized.details ? { ...diagnosticEvent, details: normalized.details } : diagnosticEvent
+      );
+    } catch {
+      // Do not mask the original tool error if diagnostics persistence fails.
+    }
+
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              error: {
+                ...normalized.toSafePayload(),
+                diagnosticId
+              }
+            },
+            null,
+            2
+          )
+        }
+      ]
+    };
+  }
+}
+
+function projectIdFromInput(context: OpenMembrainMcpContext, input: unknown): string {
+  if (typeof input === "object" && input !== null && "projectId" in input) {
+    const projectId = input.projectId;
+    if (typeof projectId === "string") {
+      return resolveProjectId(context, projectId);
+    }
+  }
+
+  return context.defaultProjectId;
 }

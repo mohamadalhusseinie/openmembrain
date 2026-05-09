@@ -1,5 +1,6 @@
 import type { MemoryCandidate, MemoryScope, MemoryType } from "./MemoryCandidate";
 import type { MemoryEntry } from "./MemoryEntry";
+export type { DiagnosticEvent, DiagnosticQuery, DiagnosticsLogStore } from "../diagnostics/Diagnostics";
 
 export interface MemorySearchOptions {
   limit?: number;

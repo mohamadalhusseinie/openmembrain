@@ -1,17 +1,21 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { OpenMembrainError } from "@openmembrain/core";
 
 export async function readJsonArray<T>(filePath: string): Promise<T[]> {
   try {
     const raw = await readFile(filePath, "utf8");
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) {
-      throw new Error(`Expected JSON array in ${filePath}.`);
+      throw invalidJsonError(filePath);
     }
     return parsed as T[];
   } catch (error) {
     if (isNotFoundError(error)) {
       return [];
+    }
+    if (error instanceof SyntaxError) {
+      throw invalidJsonError(filePath, error);
     }
     throw error;
   }
@@ -24,4 +28,14 @@ export async function writeJsonArray<T>(filePath: string, rows: T[]): Promise<vo
 
 function isNotFoundError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+
+function invalidJsonError(filePath: string, cause?: unknown): OpenMembrainError {
+  return new OpenMembrainError({
+    code: "STORAGE_INVALID_JSON",
+    message: `Expected JSON array in ${filePath}.`,
+    safeMessage: "OpenMembrain could not read one of its local JSON store files.",
+    details: { filePath },
+    cause
+  });
 }

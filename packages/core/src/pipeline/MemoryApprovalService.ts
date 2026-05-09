@@ -1,5 +1,6 @@
 import { createId, nowIso } from "@openmembrain/shared";
 import { Deduplicator } from "../deduplication/Deduplicator";
+import { OpenMembrainError } from "../errors/OpenMembrainError";
 import { SecretDetector } from "../filtering/SecretDetector";
 import { memoryEntryFromCandidate, type MemoryEntry } from "../types/MemoryEntry";
 import type { AuditLogStore, MemoryStore, PendingCandidateStore } from "../types/Storage";
@@ -30,11 +31,21 @@ export class MemoryApprovalService {
   async approve(projectId: string, candidateId: string): Promise<MemoryEntry> {
     const candidate = await this.pendingCandidateStore.findById(projectId, candidateId);
     if (!candidate) {
-      throw new Error(`Pending memory candidate ${candidateId} was not found.`);
+      throw new OpenMembrainError({
+        code: "CANDIDATE_NOT_FOUND",
+        message: `Pending memory candidate ${candidateId} was not found.`,
+        safeMessage: "The pending memory candidate was not found.",
+        details: { candidateId }
+      });
     }
 
     if (candidate.sensitivity === "secret" || this.secretDetector.containsSecret(candidate.content)) {
-      throw new Error("Secret candidates cannot be approved.");
+      throw new OpenMembrainError({
+        code: "SECRET_CANDIDATE",
+        message: "Secret candidates cannot be approved.",
+        safeMessage: "This memory candidate contains secret material and cannot be approved.",
+        details: { candidateId }
+      });
     }
 
     const existing = await this.memoryStore.list(projectId);
@@ -65,7 +76,12 @@ export class MemoryApprovalService {
   async reject(projectId: string, candidateId: string, reason?: string): Promise<void> {
     const candidate = await this.pendingCandidateStore.findById(projectId, candidateId);
     if (!candidate) {
-      throw new Error(`Pending memory candidate ${candidateId} was not found.`);
+      throw new OpenMembrainError({
+        code: "CANDIDATE_NOT_FOUND",
+        message: `Pending memory candidate ${candidateId} was not found.`,
+        safeMessage: "The pending memory candidate was not found.",
+        details: { candidateId }
+      });
     }
 
     await this.pendingCandidateStore.remove(projectId, candidateId);

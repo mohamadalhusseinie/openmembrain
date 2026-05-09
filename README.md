@@ -61,6 +61,17 @@ Initial MCP tools:
 - `approve_memory_candidate`
 - `reject_memory_candidate`
 - `export_static_memory_files`
+- `get_diagnostics`
+- `list_audit_log`
+
+## Diagnostics And Errors
+
+OpenMembrain distinguishes audit history from diagnostics:
+
+- Audit events describe normal memory activity, such as session ingestion, candidate extraction, saved memory, queued candidates, and rejected candidates.
+- Diagnostics describe operational problems, such as validation errors, missing candidates, invalid local JSON stores, unsafe approval attempts, and export failures.
+
+MCP tools return safe user-facing error payloads with a `diagnosticId`. The detailed diagnostic can be inspected through `get_diagnostics` without exposing raw transcripts or secrets.
 
 ## Static Fallback Files
 

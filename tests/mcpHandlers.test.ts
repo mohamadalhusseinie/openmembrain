@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { createOpenMembrainContext } from "../apps/mcp-server/src/context";
+import { safeJsonResult } from "../apps/mcp-server/src/server";
 import { createToolHandlers } from "../apps/mcp-server/src/tools/handlers";
 
 const tempDirs: string[] = [];
@@ -111,5 +112,39 @@ describe("MCP tool handlers", () => {
     const projectMemory = await readFile(join(projectRoot, "docs", "ai", "project-memory.md"), "utf8");
     expect(agents).toContain("Angular standalone components");
     expect(projectMemory).toContain("Angular standalone components");
+  });
+
+  it("logs safe diagnostics for user-facing MCP tool errors", async () => {
+    const { context, handlers } = await createHandlers();
+
+    const result = await safeJsonResult(context, "propose_memory_from_session", {}, () =>
+      handlers.proposeMemoryFromSession({})
+    );
+
+    expect(result.isError).toBe(true);
+    const payload = JSON.parse(result.content[0]?.type === "text" ? result.content[0].text : "{}") as {
+      error: { code: string; message: string; diagnosticId: string };
+    };
+
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
+    expect(payload.error.message).toBe("Either a session transcript or summary is required.");
+    expect(payload.error.diagnosticId).toMatch(/^diag_/);
+
+    const diagnostics = await handlers.getDiagnostics({});
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.id).toBe(payload.error.diagnosticId);
+    expect(diagnostics[0]?.operation).toBe("propose_memory_from_session");
+  });
+
+  it("exposes audit events for memory pipeline activity", async () => {
+    const { handlers } = await createHandlers();
+
+    await handlers.proposeMemoryFromSession({
+      transcript: "rule: Frontend tests require runtime config to be mocked."
+    });
+
+    const auditLog = await handlers.listAuditLog({});
+    expect(auditLog.map((event) => event.type)).toContain("session_ingested");
+    expect(auditLog.map((event) => event.type)).toContain("memory_saved");
   });
 });

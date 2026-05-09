@@ -2,7 +2,7 @@ import { basename, join, resolve } from "node:path";
 import { cwd, env } from "node:process";
 import { MemoryApprovalService, MemoryPipeline, MockMemoryExtractor } from "@openmembrain/core";
 import { StaticMemoryExportService } from "@openmembrain/exporters";
-import { JsonAuditLogStore, JsonMemoryStore, JsonPendingCandidateStore } from "@openmembrain/storage";
+import { JsonAuditLogStore, JsonDiagnosticsLogStore, JsonMemoryStore, JsonPendingCandidateStore } from "@openmembrain/storage";
 
 export interface OpenMembrainMcpContext {
   defaultProjectId: string;
@@ -11,6 +11,7 @@ export interface OpenMembrainMcpContext {
   memoryStore: JsonMemoryStore;
   pendingCandidateStore: JsonPendingCandidateStore;
   auditLogStore: JsonAuditLogStore;
+  diagnosticsLogStore: JsonDiagnosticsLogStore;
   pipeline: MemoryPipeline;
   approvalService: MemoryApprovalService;
   exportService: StaticMemoryExportService;
@@ -27,6 +28,7 @@ export function createOpenMembrainContext(
   const memoryStore = new JsonMemoryStore(storageDir);
   const pendingCandidateStore = new JsonPendingCandidateStore(storageDir);
   const auditLogStore = new JsonAuditLogStore(storageDir);
+  const diagnosticsLogStore = new JsonDiagnosticsLogStore(storageDir);
   const pipeline = new MemoryPipeline({
     extractor: new MockMemoryExtractor(),
     memoryStore,
@@ -47,6 +49,7 @@ export function createOpenMembrainContext(
     memoryStore,
     pendingCandidateStore,
     auditLogStore,
+    diagnosticsLogStore,
     pipeline,
     approvalService,
     exportService

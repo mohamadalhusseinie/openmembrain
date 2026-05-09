@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { memoryScopes, memoryTypes } from "@openmembrain/core";
+import { diagnosticSeverities, memoryScopes, memoryTypes } from "@openmembrain/core";
 import type { ExportTarget } from "@openmembrain/exporters";
 
 export const exportTargets: readonly [ExportTarget, ...ExportTarget[]] = [
@@ -66,4 +66,16 @@ export const exportStaticMemoryFilesSchema = {
   targets: z.array(z.enum(exportTargets)).optional(),
   outputDir: z.string().min(1).optional().describe("Directory to write generated files into. Defaults to the MCP server working directory."),
   includeConfidential: z.boolean().optional().describe("Include confidential memory in static files. Defaults to false.")
+};
+
+export const getDiagnosticsSchema = {
+  ...projectIdSchema,
+  severity: z.enum(diagnosticSeverities).optional(),
+  code: z.string().min(1).optional(),
+  limit: z.number().int().positive().max(500).optional()
+};
+
+export const listAuditLogSchema = {
+  ...projectIdSchema,
+  limit: z.number().int().positive().max(500).optional()
 };

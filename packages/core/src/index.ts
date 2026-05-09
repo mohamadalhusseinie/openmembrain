@@ -2,6 +2,8 @@ export * from "./classification/ActionRecommender";
 export * from "./classification/MemoryClassifier";
 export * from "./deduplication/ConflictDetector";
 export * from "./deduplication/Deduplicator";
+export * from "./diagnostics/Diagnostics";
+export * from "./errors/OpenMembrainError";
 export * from "./extraction/MemoryExtractor";
 export * from "./extraction/MockMemoryExtractor";
 export * from "./filtering/NoiseFilter";
