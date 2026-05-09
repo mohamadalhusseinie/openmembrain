@@ -5,6 +5,7 @@ export * from "./deduplication/Deduplicator";
 export * from "./diagnostics/Diagnostics";
 export * from "./errors/OpenMembrainError";
 export * from "./extraction/ExtractionConfig";
+export * from "./extraction/extractionPrompt";
 export * from "./extraction/loadExtractionConfig";
 export * from "./extraction/MemoryExtractor";
 export * from "./extraction/MockMemoryExtractor";
