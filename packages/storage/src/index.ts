@@ -16,3 +16,4 @@ export {
   removeFromIndexes
 } from "./directoryStore";
 export type { HasTypeAndScope } from "./directoryStore";
+export { migrateMemories, migratePending } from "./migrate";

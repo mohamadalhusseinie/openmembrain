@@ -62,8 +62,10 @@ export async function listEntries<T extends HasTypeAndScope>(baseDir: string): P
   const results: T[] = [];
   const typeDirs = await safeReaddir(baseDir);
   for (const typeDir of typeDirs) {
+    if (typeDir.endsWith(".json") || typeDir.startsWith("_")) continue;
     const scopeDirs = await safeReaddir(join(baseDir, typeDir));
     for (const scopeDir of scopeDirs) {
+      if (scopeDir.endsWith(".json") || scopeDir.startsWith("_")) continue;
       const files = await safeReaddir(join(baseDir, typeDir, scopeDir));
       for (const file of files) {
         if (!file.endsWith(".json") || file.startsWith("_") || file === "index.json") continue;
