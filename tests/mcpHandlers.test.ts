@@ -147,4 +147,53 @@ describe("MCP tool handlers", () => {
     expect(auditLog.map((event) => event.type)).toContain("session_ingested");
     expect(auditLog.map((event) => event.type)).toContain("memory_saved");
   });
+
+  it("updates a saved memory through the update handler", async () => {
+    const { handlers } = await createHandlers();
+
+    const proposed = await handlers.proposeMemoryFromSession({
+      transcript: "rule: This project uses Angular standalone components. Do not introduce NgModules."
+    });
+    const savedMemory = proposed.saved[0]!;
+
+    const updated = await handlers.updateMemory({
+      memoryId: savedMemory.id,
+      content: "This project uses Angular standalone components exclusively.",
+      tags: ["angular", "frontend"]
+    });
+
+    expect(updated.content).toBe("This project uses Angular standalone components exclusively.");
+    expect(updated.tags).toEqual(["angular", "frontend"]);
+    expect(updated.id).toBe(savedMemory.id);
+
+    const found = await handlers.searchMemory({ query: "Angular standalone" });
+    expect(found).toHaveLength(1);
+    expect(found[0]!.content).toBe("This project uses Angular standalone components exclusively.");
+
+    const auditLog = await handlers.listAuditLog({});
+    expect(auditLog.map((event) => event.type)).toContain("memory_updated");
+  });
+
+  it("returns error when updating memory with secret content", async () => {
+    const { context, handlers } = await createHandlers();
+
+    const proposed = await handlers.proposeMemoryFromSession({
+      transcript: "rule: This project uses Angular standalone components. Do not introduce NgModules."
+    });
+    const savedMemory = proposed.saved[0]!;
+
+    const result = await safeJsonResult(context, "update_memory", { memoryId: savedMemory.id }, () =>
+      handlers.updateMemory({
+        memoryId: savedMemory.id,
+        content: "Use API key AKIA1234567890ABCDEF for deployments."
+      })
+    );
+
+    expect(result.isError).toBe(true);
+    const payload = JSON.parse(result.content[0]?.type === "text" ? result.content[0].text : "{}") as {
+      error: { code: string; diagnosticId: string };
+    };
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
+    expect(payload.error.diagnosticId).toMatch(/^diag_/);
+  });
 });
