@@ -1,6 +1,6 @@
 import { basename, join, resolve } from "node:path";
 import { cwd, env } from "node:process";
-import { MemoryApprovalService, MemoryPipeline, MemoryUpdateService, createExtractor, loadExtractionConfig } from "@openmembrain/core";
+import { IngestionService, MemoryApprovalService, MemoryPipeline, MemoryUpdateService, createExtractor, loadExtractionConfig } from "@openmembrain/core";
 import type { ExtractionDiagnostics } from "@openmembrain/core";
 import { StaticMemoryExportService } from "@openmembrain/exporters";
 import { createId, nowIso } from "@openmembrain/shared";
@@ -17,6 +17,7 @@ export interface OpenMembrainMcpContext {
   pipeline: MemoryPipeline;
   approvalService: MemoryApprovalService;
   updateService: MemoryUpdateService;
+  ingestionService: IngestionService;
   exportService: StaticMemoryExportService;
 }
 
@@ -69,6 +70,7 @@ export function createOpenMembrainContext(
     memoryStore,
     auditLogStore
   });
+  const ingestionService = new IngestionService({ pipeline });
   const exportService = new StaticMemoryExportService();
 
   return {
@@ -82,6 +84,7 @@ export function createOpenMembrainContext(
     pipeline,
     approvalService,
     updateService,
+    ingestionService,
     exportService
   };
 }
