@@ -1,23 +1,25 @@
 import { basename, join, resolve } from "node:path";
 import { cwd, env } from "node:process";
 import { MemoryApprovalService, MemoryPipeline, MemoryUpdateService, createExtractor, loadExtractionConfig } from "@openmembrain/core";
-import type { ExtractionDiagnostics } from "@openmembrain/core";
+import type { AuditLogStore, DiagnosticsLogStore, ExtractionDiagnostics, MemoryStore, PendingCandidateStore } from "@openmembrain/core";
 import { StaticMemoryExportService } from "@openmembrain/exporters";
 import { createId, nowIso } from "@openmembrain/shared";
-import { JsonAuditLogStore, JsonDiagnosticsLogStore, JsonMemoryStore, JsonPendingCandidateStore } from "@openmembrain/storage";
+import { createStores } from "@openmembrain/storage";
+import type { StorageBackend, StoreSet } from "@openmembrain/storage";
 
 export interface OpenMembrainMcpContext {
   defaultProjectId: string;
   projectRoot: string;
   storageDir: string;
-  memoryStore: JsonMemoryStore;
-  pendingCandidateStore: JsonPendingCandidateStore;
-  auditLogStore: JsonAuditLogStore;
-  diagnosticsLogStore: JsonDiagnosticsLogStore;
+  memoryStore: MemoryStore;
+  pendingCandidateStore: PendingCandidateStore;
+  auditLogStore: AuditLogStore;
+  diagnosticsLogStore: DiagnosticsLogStore;
   pipeline: MemoryPipeline;
   approvalService: MemoryApprovalService;
   updateService: MemoryUpdateService;
   exportService: StaticMemoryExportService;
+  close?: () => void;
 }
 
 export function createOpenMembrainContext(
@@ -28,10 +30,9 @@ export function createOpenMembrainContext(
   const storageDir = resolve(options.storageDir ?? env.OPENMEMBRAIN_HOME ?? join(workingDirectory, ".openmembrain"));
   const defaultProjectId = options.defaultProjectId ?? env.OPENMEMBRAIN_PROJECT_ID ?? basename(workingDirectory);
 
-  const memoryStore = new JsonMemoryStore(storageDir);
-  const pendingCandidateStore = new JsonPendingCandidateStore(storageDir);
-  const auditLogStore = new JsonAuditLogStore(storageDir);
-  const diagnosticsLogStore = new JsonDiagnosticsLogStore(storageDir);
+  const backend: StorageBackend = env.OPENMEMBRAIN_STORAGE_BACKEND === "sqlite" ? "sqlite" : "json";
+  const stores: StoreSet = createStores({ backend, baseDir: storageDir });
+  const { memoryStore, pendingCandidateStore, auditLogStore, diagnosticsLogStore } = stores;
 
   const onDiagnostics = (diagnostics: ExtractionDiagnostics): void => {
     const severity = diagnostics.errors.length > 0 ? "warning" as const : "info" as const;
@@ -82,7 +83,8 @@ export function createOpenMembrainContext(
     pipeline,
     approvalService,
     updateService,
-    exportService
+    exportService,
+    ...(stores.close !== undefined ? { close: stores.close } : {}),
   };
 }
 
