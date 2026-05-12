@@ -9,6 +9,7 @@ export type OpenMembrainErrorCode =
   | "MEMORY_NOT_FOUND"
   | "MEMORY_ALREADY_SUPERSEDED"
   | "SENSITIVITY_DOWNGRADE"
+  | "STORAGE_ERROR"
   | "UNKNOWN_ERROR";
 
 export interface OpenMembrainErrorOptions {
