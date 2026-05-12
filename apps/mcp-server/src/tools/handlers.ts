@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { OpenMembrainError, rankMemories, type DiagnosticSeverity, type MemoryScope, type MemorySearchOptions, type MemoryType, type SessionInput } from "@openmembrain/core";
+import { rankMemories, type DiagnosticSeverity, type IngestionRequest, type MemoryScope, type MemorySearchOptions, type MemoryType } from "@openmembrain/core";
 import type { ExportTarget } from "@openmembrain/exporters";
 import type { OpenMembrainMcpContext } from "../context";
 import { createId, nowIso } from "@openmembrain/shared";
@@ -96,34 +96,25 @@ export interface ReviewStaleMemoriesInput extends ProjectScopedInput {
 export function createToolHandlers(context: OpenMembrainMcpContext) {
   return {
     proposeMemoryFromSession: async (input: ProposeMemoryInput) => {
-      if (!input.transcript && !input.summary) {
-        throw new OpenMembrainError({
-          code: "VALIDATION_ERROR",
-          message: "Either transcript or summary is required.",
-          safeMessage: "Either a session transcript or summary is required."
-        });
-      }
-
-      const sessionInput: SessionInput = {
+      const request: IngestionRequest = {
         projectId: resolveProjectId(context, input.projectId)
       };
       if (input.transcript) {
-        sessionInput.transcript = input.transcript;
+        request.transcript = input.transcript;
       }
       if (input.summary) {
-        sessionInput.summary = input.summary;
+        request.summary = input.summary;
       }
       if (input.tool) {
-        sessionInput.tool = input.tool;
+        request.tool = input.tool;
       }
       if (input.sessionId) {
-        sessionInput.sessionId = input.sessionId;
+        request.sessionId = input.sessionId;
       }
       if (input.metadata) {
-        sessionInput.metadata = input.metadata;
+        request.metadata = input.metadata;
       }
-
-      return context.pipeline.process(sessionInput);
+      return context.ingestionService.ingest(request);
     },
 
     getProjectRules: async (input: GetProjectRulesInput) => {
