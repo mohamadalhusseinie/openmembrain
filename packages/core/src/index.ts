@@ -27,3 +27,4 @@ export * from "./types/MemoryCandidate";
 export * from "./types/MemoryEntry";
 export * from "./types/SessionInput";
 export * from "./types/Storage";
+export * from "./ingestion/index";
