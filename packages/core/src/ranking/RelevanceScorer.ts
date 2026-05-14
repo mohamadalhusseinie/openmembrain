@@ -1,5 +1,6 @@
 import type { MemoryEntry } from "../types/MemoryEntry";
 import type { Confidence, MemoryType } from "../types/MemoryCandidate";
+import { ConflictDetector, type ConflictAnnotation } from "../deduplication/ConflictDetector";
 
 export const rankingStrategies = ["context", "search"] as const;
 export type RankingStrategy = (typeof rankingStrategies)[number];
@@ -7,6 +8,7 @@ export type RankingStrategy = (typeof rankingStrategies)[number];
 export interface ScoredMemory {
   readonly entry: MemoryEntry;
   readonly score: number;
+  readonly conflicts?: readonly ConflictAnnotation[];
 }
 
 /** Weight profile for each scoring signal. Values should sum to 1.0. */
@@ -219,4 +221,29 @@ export function rankMemories(
       // Tie-break: most recently updated first.
       return b.entry.updatedAt.localeCompare(a.entry.updatedAt);
     });
+}
+
+/**
+ * Run conflict detection on already-ranked memories and attach annotations.
+ *
+ * Entries without conflicts are returned unchanged (no `conflicts` field).
+ * This is designed to be called after `rankMemories` on the final top-N slice
+ * so the pairwise comparison cost stays bounded.
+ */
+export function annotateConflicts(scored: readonly ScoredMemory[]): ScoredMemory[] {
+  if (scored.length < 2) {
+    return scored.map((s) => ({ entry: s.entry, score: s.score }));
+  }
+
+  const detector = new ConflictDetector();
+  const entries = scored.map((s) => s.entry);
+  const conflictMap = detector.findConflictsAmong(entries);
+
+  return scored.map((s) => {
+    const annotations = conflictMap.get(s.entry.id);
+    if (annotations && annotations.length > 0) {
+      return { entry: s.entry, score: s.score, conflicts: annotations };
+    }
+    return { entry: s.entry, score: s.score };
+  });
 }
