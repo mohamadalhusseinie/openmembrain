@@ -293,4 +293,73 @@ describe("MCP tool handlers", () => {
     const results = await handlers.getRelevantContext({ query: "React", limit: 2 });
     expect(results).toHaveLength(2);
   });
+
+  it("getRelevantContext includes conflict annotations for contradictory memories", async () => {
+    const { context, handlers } = await createHandlers();
+
+    const store = context.memoryStore;
+    const { entry: entryFactory } = await import("./unit/helpers");
+
+    await store.save(entryFactory({
+      id: "mem_pnpm",
+      content: "Use pnpm for package management.",
+      updatedAt: "2026-05-08T00:00:00.000Z"
+    }));
+    await store.save(entryFactory({
+      id: "mem_yarn",
+      content: "Use yarn for package management.",
+      updatedAt: "2026-05-08T00:00:00.000Z"
+    }));
+
+    const results = await handlers.getRelevantContext({ query: "package management" });
+
+    expect(results).toHaveLength(2);
+
+    // Both results should have conflict annotations
+    const pnpmResult = results.find((r) => r.id === "mem_pnpm")!;
+    const yarnResult = results.find((r) => r.id === "mem_yarn")!;
+    expect(pnpmResult).toBeDefined();
+    expect(yarnResult).toBeDefined();
+
+    const pnpmConflicts = "conflicts" in pnpmResult ? pnpmResult.conflicts : undefined;
+    const yarnConflicts = "conflicts" in yarnResult ? yarnResult.conflicts : undefined;
+
+    expect(pnpmConflicts).toBeDefined();
+    expect(yarnConflicts).toBeDefined();
+
+    expect(pnpmConflicts).toHaveLength(1);
+    expect(pnpmConflicts![0]!.memoryId).toBe("mem_yarn");
+    expect(pnpmConflicts![0]!.kind).toBe("alternative");
+
+    expect(yarnConflicts).toHaveLength(1);
+    expect(yarnConflicts![0]!.memoryId).toBe("mem_pnpm");
+    expect(yarnConflicts![0]!.kind).toBe("alternative");
+  });
+
+  it("getRelevantContext omits conflicts field when no conflicts exist", async () => {
+    const { context, handlers } = await createHandlers();
+
+    const store = context.memoryStore;
+    const { entry: entryFactory } = await import("./unit/helpers");
+
+    await store.save(entryFactory({
+      id: "mem_react",
+      content: "Use React for frontend components.",
+      updatedAt: "2026-05-08T00:00:00.000Z"
+    }));
+    await store.save(entryFactory({
+      id: "mem_tests",
+      content: "Frontend tests require mocked runtime config.",
+      updatedAt: "2026-05-08T00:00:00.000Z"
+    }));
+
+    const results = await handlers.getRelevantContext({ query: "frontend" });
+
+    expect(results).toHaveLength(2);
+
+    // Neither result should have conflicts
+    for (const result of results) {
+      expect("conflicts" in result).toBe(false);
+    }
+  });
 });

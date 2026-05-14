@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { rankMemories, type DiagnosticSeverity, type IngestionRequest, type MemoryScope, type MemorySearchOptions, type MemoryType } from "@openmembrain/core";
+import { rankMemories, annotateConflicts, type DiagnosticSeverity, type IngestionRequest, type MemoryScope, type MemorySearchOptions, type MemoryType } from "@openmembrain/core";
 import type { ExportTarget } from "@openmembrain/exporters";
 import type { OpenMembrainMcpContext } from "../context";
 import { createId, nowIso } from "@openmembrain/shared";
@@ -139,9 +139,15 @@ export function createToolHandlers(context: OpenMembrainMcpContext) {
         options.scopes = [input.scope];
       }
       const candidates = await context.memoryStore.search(projectId, input.query, options);
-      return rankMemories(candidates, input.query, "context", undefined, input.scope)
-        .slice(0, limit)
-        .map((scored) => scored.entry);
+      const ranked = rankMemories(candidates, input.query, "context", undefined, input.scope)
+        .slice(0, limit);
+      const annotated = annotateConflicts(ranked);
+      return annotated.map((scored) => {
+        if (scored.conflicts && scored.conflicts.length > 0) {
+          return { ...scored.entry, conflicts: scored.conflicts };
+        }
+        return scored.entry;
+      });
     },
 
     searchMemory: async (input: SearchMemoryInput) => {

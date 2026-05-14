@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankMemories, scoreEntry, tokenize } from "@openmembrain/core";
+import { rankMemories, scoreEntry, tokenize, annotateConflicts } from "@openmembrain/core";
 import { entry } from "./helpers";
 
 const REF_TIME = "2026-05-08T12:00:00.000Z";
@@ -260,5 +260,118 @@ describe("rankMemories", () => {
 
     // Scores should be equal — no scope preference
     expect(Math.abs(ranked[0]!.score - ranked[1]!.score)).toBeLessThan(1e-9);
+  });
+});
+
+describe("annotateConflicts", () => {
+  it("returns results without conflicts field when no conflicts exist", () => {
+    const ranked = rankMemories(
+      [
+        entry({ id: "mem_1", content: "Use React for frontend components." }),
+        entry({ id: "mem_2", content: "Frontend tests require mocked runtime config." }),
+      ],
+      "frontend",
+      "context",
+      REF_TIME,
+    );
+
+    const annotated = annotateConflicts(ranked);
+    expect(annotated).toHaveLength(2);
+    expect(annotated[0]!.conflicts).toBeUndefined();
+    expect(annotated[1]!.conflicts).toBeUndefined();
+  });
+
+  it("annotates negation conflicts between scored memories", () => {
+    const ranked = rankMemories(
+      [
+        entry({ id: "mem_1", content: "Use NgModules for all feature modules." }),
+        entry({ id: "mem_2", content: "Do not use NgModules in this project." }),
+      ],
+      "NgModules",
+      "context",
+      REF_TIME,
+    );
+
+    const annotated = annotateConflicts(ranked);
+    expect(annotated).toHaveLength(2);
+
+    const first = annotated.find((s) => s.entry.id === "mem_1")!;
+    const second = annotated.find((s) => s.entry.id === "mem_2")!;
+
+    expect(first.conflicts).toHaveLength(1);
+    expect(first.conflicts![0]!.memoryId).toBe("mem_2");
+    expect(first.conflicts![0]!.kind).toBe("negation");
+
+    expect(second.conflicts).toHaveLength(1);
+    expect(second.conflicts![0]!.memoryId).toBe("mem_1");
+    expect(second.conflicts![0]!.kind).toBe("negation");
+  });
+
+  it("annotates alternative conflicts between scored memories", () => {
+    const ranked = rankMemories(
+      [
+        entry({ id: "mem_1", content: "Use React for frontend components." }),
+        entry({ id: "mem_2", content: "Use Angular for frontend components." }),
+      ],
+      "frontend framework",
+      "context",
+      REF_TIME,
+    );
+
+    const annotated = annotateConflicts(ranked);
+    const first = annotated.find((s) => s.entry.id === "mem_1")!;
+    expect(first.conflicts).toHaveLength(1);
+    expect(first.conflicts![0]!.kind).toBe("alternative");
+  });
+
+  it("annotates version mismatch conflicts between scored memories", () => {
+    const ranked = rankMemories(
+      [
+        entry({ id: "mem_1", content: "Target Node 22 for backend services.", scope: "backend" }),
+        entry({ id: "mem_2", content: "Target Node 18 for backend services.", scope: "backend" }),
+      ],
+      "Node version",
+      "context",
+      REF_TIME,
+    );
+
+    const annotated = annotateConflicts(ranked);
+    const first = annotated.find((s) => s.entry.id === "mem_1")!;
+    expect(first.conflicts).toHaveLength(1);
+    expect(first.conflicts![0]!.kind).toBe("version_mismatch");
+  });
+
+  it("preserves scores from input", () => {
+    const ranked = rankMemories(
+      [
+        entry({ id: "mem_1", content: "Use React for frontend components." }),
+        entry({ id: "mem_2", content: "Use Angular for frontend components." }),
+      ],
+      "frontend framework",
+      "context",
+      REF_TIME,
+    );
+
+    const annotated = annotateConflicts(ranked);
+    expect(annotated[0]!.score).toBe(ranked[0]!.score);
+    expect(annotated[1]!.score).toBe(ranked[1]!.score);
+  });
+
+  it("returns single-element arrays unchanged", () => {
+    const ranked = rankMemories(
+      [entry({ id: "mem_1", content: "Use React for frontend." })],
+      "React",
+      "context",
+      REF_TIME,
+    );
+
+    const annotated = annotateConflicts(ranked);
+    expect(annotated).toHaveLength(1);
+    expect(annotated[0]!.conflicts).toBeUndefined();
+  });
+
+  it("returns empty array for empty input", () => {
+    const annotated = annotateConflicts([]);
+    expect(annotated).toEqual([]);
   });
 });
