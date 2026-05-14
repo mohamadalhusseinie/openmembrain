@@ -13,7 +13,7 @@ class FakeOpenAiExtractor implements MemoryExtractor {
 }
 
 const fakeProviders = {
-  openai: (_config: ExtractionConfig, _opts?: { onDiagnostics?: OnExtractionDiagnostics }) =>
+  openai: (_config: ExtractionConfig, _opts?: { onDiagnostics?: OnExtractionDiagnostics | undefined }) =>
     new FakeOpenAiExtractor(),
 };
 
