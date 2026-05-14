@@ -173,4 +173,92 @@ describe("ConflictDetector", () => {
       expect(conflicts).toHaveLength(0);
     });
   });
+
+  describe("findConflictsAmong — entry-vs-entry", () => {
+    it("returns empty map when no conflicts exist", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Use React for frontend components." }),
+        entry({ id: "mem_2", content: "Frontend tests require mocked runtime config." }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+      expect(result.size).toBe(0);
+    });
+
+    it("detects negation conflict between two entries", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Use NgModules for all feature modules." }),
+        entry({ id: "mem_2", content: "Do not use NgModules in this project." }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+      expect(result.size).toBe(2);
+
+      const mem1Conflicts = result.get("mem_1")!;
+      expect(mem1Conflicts).toHaveLength(1);
+      expect(mem1Conflicts[0]!.memoryId).toBe("mem_2");
+      expect(mem1Conflicts[0]!.kind).toBe("negation");
+
+      const mem2Conflicts = result.get("mem_2")!;
+      expect(mem2Conflicts).toHaveLength(1);
+      expect(mem2Conflicts[0]!.memoryId).toBe("mem_1");
+      expect(mem2Conflicts[0]!.kind).toBe("negation");
+    });
+
+    it("detects alternative conflict between two entries", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Use React for frontend components." }),
+        entry({ id: "mem_2", content: "Use Angular for frontend components." }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+      expect(result.size).toBe(2);
+      expect(result.get("mem_1")![0]!.kind).toBe("alternative");
+      expect(result.get("mem_2")![0]!.kind).toBe("alternative");
+    });
+
+    it("detects version mismatch between two entries", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Target Node 22 for backend services.", scope: "backend" }),
+        entry({ id: "mem_2", content: "Target Node 18 for backend services.", scope: "backend" }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+      expect(result.size).toBe(2);
+      expect(result.get("mem_1")![0]!.kind).toBe("version_mismatch");
+      expect(result.get("mem_2")![0]!.kind).toBe("version_mismatch");
+    });
+
+    it("returns empty map for a single entry", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Use React for frontend components." }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+      expect(result.size).toBe(0);
+    });
+
+    it("returns empty map for an empty array", () => {
+      const result = detector.findConflictsAmong([]);
+      expect(result.size).toBe(0);
+    });
+
+    it("skips pairs with different non-global scopes", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Use NgModules for this.", scope: "frontend" }),
+        entry({ id: "mem_2", content: "Do not use NgModules for this.", scope: "backend" }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+      expect(result.size).toBe(0);
+    });
+
+    it("detects conflicts across multiple pairs", () => {
+      const entries = [
+        entry({ id: "mem_1", content: "Use pnpm for package management." }),
+        entry({ id: "mem_2", content: "Use yarn for package management." }),
+        entry({ id: "mem_3", content: "Use npm for package management." }),
+      ];
+      const result = detector.findConflictsAmong(entries);
+
+      // Each entry conflicts with the other two
+      expect(result.get("mem_1")).toHaveLength(2);
+      expect(result.get("mem_2")).toHaveLength(2);
+      expect(result.get("mem_3")).toHaveLength(2);
+    });
+  });
 });

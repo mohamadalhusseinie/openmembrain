@@ -10,6 +10,17 @@ export interface ConflictResult {
   kind: ConflictKind;
 }
 
+export interface ConflictAnnotation {
+  readonly memoryId: string;
+  readonly kind: ConflictKind;
+}
+
+interface Comparable {
+  readonly projectId: string;
+  readonly scope: string;
+  readonly content: string;
+}
+
 export class ConflictDetector {
   findConflicts(candidate: MemoryCandidate, existing: MemoryEntry[]): ConflictResult[] {
     const candidateTokens = importantTokens(candidate.content);
@@ -17,34 +28,84 @@ export class ConflictDetector {
     const results: ConflictResult[] = [];
 
     for (const memory of existing) {
-      if (memory.projectId !== candidate.projectId) {
-        continue;
-      }
-      if (memory.scope !== candidate.scope && memory.scope !== "global" && candidate.scope !== "global") {
-        continue;
-      }
-
-      const memoryTokens = importantTokens(memory.content);
-      const overlap = tokenOverlap(candidateTokens, memoryTokens);
-      const memoryNegated = hasNegation(memory.content);
-
-      if (
-        overlap >= 0.45 &&
-        candidateNegated !== memoryNegated &&
-        !mentionsDifferentAlternatives(candidate.content, memory.content)
-      ) {
-        results.push({ memory, kind: "negation" });
-        continue;
-      }
-
-      const alternativeKind = getAlternativeConflictKind(candidate.content, memory.content, candidateTokens, memoryTokens);
-      if (alternativeKind) {
-        results.push({ memory, kind: alternativeKind });
+      const kind = detectConflictKind(candidate, candidateTokens, candidateNegated, memory);
+      if (kind) {
+        results.push({ memory, kind });
       }
     }
 
     return results;
   }
+
+  /**
+   * Detect conflicts among a set of memory entries (entry-vs-entry).
+   * Returns a map from each entry id to the list of conflict annotations
+   * with other entries. Only entries that have at least one conflict appear
+   * in the returned map.
+   */
+  findConflictsAmong(entries: readonly MemoryEntry[]): Map<string, ConflictAnnotation[]> {
+    const result = new Map<string, ConflictAnnotation[]>();
+
+    for (let i = 0; i < entries.length; i++) {
+      const left = entries[i]!;
+      const leftTokens = importantTokens(left.content);
+      const leftNegated = hasNegation(left.content);
+
+      for (let j = i + 1; j < entries.length; j++) {
+        const right = entries[j]!;
+        const kind = detectConflictKind(left, leftTokens, leftNegated, right);
+        if (kind) {
+          let leftAnnotations = result.get(left.id);
+          if (!leftAnnotations) {
+            leftAnnotations = [];
+            result.set(left.id, leftAnnotations);
+          }
+          leftAnnotations.push({ memoryId: right.id, kind });
+
+          let rightAnnotations = result.get(right.id);
+          if (!rightAnnotations) {
+            rightAnnotations = [];
+            result.set(right.id, rightAnnotations);
+          }
+          rightAnnotations.push({ memoryId: left.id, kind });
+        }
+      }
+    }
+
+    return result;
+  }
+}
+
+/**
+ * Shared comparison logic used by both findConflicts (candidate-vs-entry)
+ * and findConflictsAmong (entry-vs-entry).
+ */
+function detectConflictKind(
+  left: Comparable,
+  leftTokens: Set<string>,
+  leftNegated: boolean,
+  right: Comparable,
+): ConflictKind | undefined {
+  if (right.projectId !== left.projectId) {
+    return undefined;
+  }
+  if (right.scope !== left.scope && right.scope !== "global" && left.scope !== "global") {
+    return undefined;
+  }
+
+  const rightTokens = importantTokens(right.content);
+  const overlap = tokenOverlap(leftTokens, rightTokens);
+  const rightNegated = hasNegation(right.content);
+
+  if (
+    overlap >= 0.45 &&
+    leftNegated !== rightNegated &&
+    !mentionsDifferentAlternatives(left.content, right.content)
+  ) {
+    return "negation";
+  }
+
+  return getAlternativeConflictKind(left.content, right.content, leftTokens, rightTokens);
 }
 
 const alternativeGroups: string[][][] = [
