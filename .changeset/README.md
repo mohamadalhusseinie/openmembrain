@@ -2,17 +2,11 @@
 
 This directory is managed by [@changesets/cli](https://github.com/changesets/changesets).
 
-## Adding a changeset
+Changeset files are created automatically — you do not need to run `npx changeset` manually.
 
-When your PR includes user-facing changes, run:
-
-```sh
-npx changeset
-```
-
-This creates a markdown file in `.changeset/` describing the change and its version bump type (patch, minor, or major). Commit this file with your PR.
-
-## How it works
+- **OpenCode** creates a changeset as part of the PR workflow (per AGENTS.md instructions).
+- **If missing**, the `changeset-fallback` GitHub Action generates one from the PR title using conventional commit prefixes (`fix:` → patch, `feat:` → minor, `feat!:` → major).
+- **CI-only or docs-only PRs** do not get changesets (the fallback workflow skips them via path filtering).
 
 All packages use **lockstep versioning** — a changeset for any package bumps the version of every package in the monorepo. Only the `openmembrain` MCP server package publishes to npm; internal `@openmembrain/*` packages are private.
 
