@@ -1,0 +1,82 @@
+name: Changeset Fallback
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited]
+    branches: [main]
+    paths-ignore:
+      - '.github/**'
+      - '.changeset/**'
+      - 'docs/**'
+      - '*.md'
+
+permissions:
+  contents: write
+
+jobs:
+  ensure-changeset:
+    name: Ensure changeset exists
+    runs-on: ubuntu-latest
+    if: github.head_ref != 'changeset-release/main'
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for existing changeset
+        id: check
+        run: |
+          FOUND=$(find .changeset -name '*.md' ! -name 'README.md' 2>/dev/null | head -1)
+          if [ -n "$FOUND" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate changeset
+        if: steps.check.outputs.exists == 'false'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # Determine bump type from PR title
+          TITLE="$PR_TITLE"
+          BUMP="patch"
+
+          if printf '%s\n' "$TITLE" | grep -qiE '^feat!(\(.+\))?:'; then
+            BUMP="major"
+          elif printf '%s\n' "$PR_BODY" | grep -q 'BREAKING CHANGE'; then
+            BUMP="major"
+          elif printf '%s\n' "$TITLE" | grep -qiE '^feat(\(.+\))?:'; then
+            BUMP="minor"
+          fi
+
+          # Strip conventional commit prefix to get description
+          DESC=$(printf '%s\n' "$TITLE" | sed -E 's/^[a-zA-Z]+!?(\([^)]*\))?:[[:space:]]*//')
+          if [ -z "$DESC" ]; then
+            DESC="$TITLE"
+          fi
+
+          # Generate random ID and ensure changeset dir exists
+          mkdir -p .changeset
+          ID=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z' | head -c 12)
+          FILE=".changeset/${ID}-auto-generated.md"
+
+          # Write changeset file
+          printf '%s\n' '---' "\"openmembrain\": ${BUMP}" '---' '' "${DESC}" > "$FILE"
+
+          echo "Generated $FILE with bump=$BUMP"
+          cat "$FILE"
+
+      - name: Commit and push
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .changeset/
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: auto-generate changeset for PR"
+          git push
