@@ -41,6 +41,7 @@ jobs:
           commit: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
 
       - name: Enable auto-merge on version PR
         if: steps.changesets.outputs.hasChangesets == 'true' && steps.changesets.outputs.pullRequestNumber != ''
