@@ -1,5 +1,11 @@
 # openmembrain
 
+## 1.0.1
+
+### Patch Changes
+
+- 4a5cd3e: Submit OpenMemBrain to MCP directories and curated lists for discoverability.
+
 ## 1.0.0
 
 ### Major Changes
