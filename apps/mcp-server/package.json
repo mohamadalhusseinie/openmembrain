@@ -38,6 +38,9 @@
     "openai": "^6.37.0",
     "zod": "^4.4.3"
   },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.9.0"
+  },
   "devDependencies": {
     "@openmembrain/core": "*",
     "@openmembrain/exporters": "*",

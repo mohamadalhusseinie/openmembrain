@@ -6,7 +6,7 @@ import { formatMemories } from "./formatters";
 import { printPendingReminder } from "./pendingReminder";
 
 export async function runContext(cmd: ContextCommand): Promise<void> {
-  const context = createOpenMembrainContext();
+  const context = await createOpenMembrainContext();
   try {
     const projectId = resolveProjectId(context, cmd.project);
 

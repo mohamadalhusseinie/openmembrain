@@ -21,10 +21,10 @@ describe("createStores", () => {
     cleanupDirs.length = 0;
   });
 
-  it("returns JSON stores by default", () => {
+  it("returns JSON stores by default", async () => {
     const dir = tmpDir();
     cleanupDirs.push(dir);
-    const stores = createStores({ backend: "json", baseDir: dir });
+    const stores = await createStores({ backend: "json", baseDir: dir });
     expect(stores.memoryStore).toBeDefined();
     expect(stores.pendingCandidateStore).toBeDefined();
     expect(stores.auditLogStore).toBeDefined();
@@ -32,10 +32,10 @@ describe("createStores", () => {
     expect(stores.close).toBeUndefined();
   });
 
-  it("returns SQLite stores when backend is sqlite", () => {
+  it("returns SQLite stores when backend is sqlite", async () => {
     const dir = tmpDir();
     cleanupDirs.push(dir);
-    const stores = createStores({ backend: "sqlite", baseDir: dir });
+    const stores = await createStores({ backend: "sqlite", baseDir: dir });
     expect(stores.memoryStore).toBeDefined();
     expect(stores.pendingCandidateStore).toBeDefined();
     expect(stores.auditLogStore).toBeDefined();
@@ -44,10 +44,10 @@ describe("createStores", () => {
     stores.close!();
   });
 
-  it("SQLite stores share a database file", () => {
+  it("SQLite stores share a database file", async () => {
     const dir = tmpDir();
     cleanupDirs.push(dir);
-    const stores = createStores({ backend: "sqlite", baseDir: dir });
+    const stores = await createStores({ backend: "sqlite", baseDir: dir });
     expect(existsSync(join(dir, "openmembrain.db"))).toBe(true);
     stores.close!();
   });

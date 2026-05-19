@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type Database from "better-sqlite3";
 import type { DiagnosticEvent } from "@openmembrain/core";
-import { openDatabase, SqliteDiagnosticsLogStore } from "@openmembrain/storage";
+import { openDatabase } from "../../packages/storage/src/sqlite/db";
+import { SqliteDiagnosticsLogStore } from "../../packages/storage/src/sqlite/SqliteDiagnosticsLogStore";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";

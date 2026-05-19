@@ -25,7 +25,7 @@ describe("CLI adapter integration", () => {
   async function setupContext() {
     const storageDir = await mkdtemp(join(tmpdir(), "openmembrain-cli-test-"));
     tempDirs.push(storageDir);
-    return createOpenMembrainContext({
+    return await createOpenMembrainContext({
       defaultProjectId: "test-project",
       storageDir
     });
@@ -36,7 +36,7 @@ describe("CLI adapter integration", () => {
       const storageDir = await mkdtemp(join(tmpdir(), "openmembrain-cli-test-"));
       tempDirs.push(storageDir);
 
-      const context = createOpenMembrainContext({
+      const context = await createOpenMembrainContext({
         defaultProjectId: "test-project",
         storageDir
       });
@@ -63,7 +63,7 @@ describe("CLI adapter integration", () => {
       const storageDir = await mkdtemp(join(tmpdir(), "openmembrain-cli-test-"));
       tempDirs.push(storageDir);
 
-      const context = createOpenMembrainContext({
+      const context = await createOpenMembrainContext({
         defaultProjectId: "test-project",
         storageDir
       });
@@ -95,7 +95,7 @@ describe("CLI adapter integration", () => {
       const storageDir = await mkdtemp(join(tmpdir(), "openmembrain-cli-test-"));
       tempDirs.push(storageDir);
 
-      const context = createOpenMembrainContext({
+      const context = await createOpenMembrainContext({
         defaultProjectId: "test-project",
         storageDir
       });

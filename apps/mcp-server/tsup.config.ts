@@ -9,5 +9,6 @@ export default defineConfig({
   banner: {
     js: "#!/usr/bin/env node",
   },
+  external: ["better-sqlite3"],
   noExternal: [/^@openmembrain\//],
 });

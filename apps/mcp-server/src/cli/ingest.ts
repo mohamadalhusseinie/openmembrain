@@ -40,7 +40,7 @@ export async function runIngest(cmd: IngestCommand): Promise<void> {
     return;
   }
 
-  const context = createOpenMembrainContext();
+  const context = await createOpenMembrainContext();
   try {
     const projectId = resolveProjectId(context, cmd.project);
 
