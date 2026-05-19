@@ -57,8 +57,9 @@ clone of the repository.
 By default, OpenMemBrain uses a mock extractor (no API keys needed). All tools
 work — you can manually manage memories, search, export, etc.
 
-To enable real memory extraction from session transcripts, add environment
-variables to the MCP config:
+To enable real memory extraction from session transcripts with the registered
+OpenAI-compatible extractor, add extraction environment variables to the MCP
+config:
 
 ```json
 "openmembrain": {
@@ -67,10 +68,14 @@ variables to the MCP config:
   "environment": {
     "OPENMEMBRAIN_EXTRACTION_PROVIDER": "openai",
     "OPENMEMBRAIN_EXTRACTION_ENABLED": "true",
-    "OPENMEMBRAIN_OPENAI_API_KEY": "your-openai-api-key"
+    "OPENMEMBRAIN_EXTRACTION_API_KEY": "your-api-key",
+    "OPENMEMBRAIN_EXTRACTION_MODEL": "gpt-4o"
   }
 }
 ```
+
+For an endpoint that implements the OpenAI API, keep the provider set to
+`openai` and set `OPENMEMBRAIN_EXTRACTION_BASE_URL` to that endpoint's base URL.
 
 ## Global Instructions (Recommended)
 
