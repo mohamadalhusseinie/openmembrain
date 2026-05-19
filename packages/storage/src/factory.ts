@@ -4,11 +4,6 @@ import { JsonMemoryStore } from "./MemoryStore";
 import { JsonPendingCandidateStore } from "./PendingCandidateStore";
 import { JsonAuditLogStore } from "./AuditLogStore";
 import { JsonDiagnosticsLogStore } from "./DiagnosticsLogStore";
-import { openDatabase } from "./sqlite/db";
-import { SqliteMemoryStore } from "./sqlite/SqliteMemoryStore";
-import { SqlitePendingCandidateStore } from "./sqlite/SqlitePendingCandidateStore";
-import { SqliteAuditLogStore } from "./sqlite/SqliteAuditLogStore";
-import { SqliteDiagnosticsLogStore } from "./sqlite/SqliteDiagnosticsLogStore";
 
 export type StorageBackend = "json" | "sqlite";
 
@@ -25,8 +20,14 @@ export interface StoreSet {
   close?: () => void;
 }
 
-export function createStores(config: StorageBackendConfig): StoreSet {
+export async function createStores(config: StorageBackendConfig): Promise<StoreSet> {
   if (config.backend === "sqlite") {
+    const { openDatabase } = await import("./sqlite/db");
+    const { SqliteMemoryStore } = await import("./sqlite/SqliteMemoryStore");
+    const { SqlitePendingCandidateStore } = await import("./sqlite/SqlitePendingCandidateStore");
+    const { SqliteAuditLogStore } = await import("./sqlite/SqliteAuditLogStore");
+    const { SqliteDiagnosticsLogStore } = await import("./sqlite/SqliteDiagnosticsLogStore");
+
     const dbPath = join(config.baseDir, "openmembrain.db");
     const db = openDatabase(dbPath);
     return {

@@ -24,16 +24,16 @@ export interface OpenMembrainMcpContext {
   close?: () => void;
 }
 
-export function createOpenMembrainContext(
+export async function createOpenMembrainContext(
   options: Partial<Pick<OpenMembrainMcpContext, "defaultProjectId" | "projectRoot" | "storageDir">> = {}
-): OpenMembrainMcpContext {
+): Promise<OpenMembrainMcpContext> {
   const workingDirectory = cwd();
   const projectRoot = resolve(options.projectRoot ?? workingDirectory);
   const storageDir = resolve(options.storageDir ?? env.OPENMEMBRAIN_HOME ?? join(workingDirectory, ".openmembrain"));
   const defaultProjectId = options.defaultProjectId ?? env.OPENMEMBRAIN_PROJECT_ID ?? basename(workingDirectory);
 
   const backend: StorageBackend = env.OPENMEMBRAIN_STORAGE_BACKEND === "sqlite" ? "sqlite" : "json";
-  const stores: StoreSet = createStores({ backend, baseDir: storageDir });
+  const stores: StoreSet = await createStores({ backend, baseDir: storageDir });
   const { memoryStore, pendingCandidateStore, auditLogStore, diagnosticsLogStore } = stores;
 
   const onDiagnostics = (diagnostics: ExtractionDiagnostics): void => {

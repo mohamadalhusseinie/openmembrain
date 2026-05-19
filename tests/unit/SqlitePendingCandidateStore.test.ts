@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type Database from "better-sqlite3";
-import { openDatabase, SqlitePendingCandidateStore } from "@openmembrain/storage";
+import { openDatabase } from "../../packages/storage/src/sqlite/db";
+import { SqlitePendingCandidateStore } from "../../packages/storage/src/sqlite/SqlitePendingCandidateStore";
 import { candidate } from "./helpers";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
