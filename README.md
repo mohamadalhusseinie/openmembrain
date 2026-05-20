@@ -84,11 +84,7 @@ Add to `.cursor/mcp.json` in your project:
 
 ### OpenCode
 
-**Automated (recommended):** Tell OpenCode:
-
-> Fetch and follow instructions from https://raw.githubusercontent.com/mohamadalhusseinie/openmembrain/refs/heads/main/.opencode/INSTALL.md
-
-**Manual:** Add to `~/.config/opencode/opencode.json`:
+Add to `~/.config/opencode/opencode.json`:
 
 ```json
 {
@@ -188,7 +184,7 @@ interface MemoryExtractor {
 }
 ```
 
-The MVP ships with `MockMemoryExtractor` so the pipeline can be tested deterministically before adding OpenAI, Anthropic, or local model extractors.
+The default setup uses `MockMemoryExtractor` so the pipeline can be tested deterministically. Optional OpenAI-compatible extraction lives behind the same `MemoryExtractor` interface and is configured through extraction environment variables.
 
 ## Diagnostics And Errors
 

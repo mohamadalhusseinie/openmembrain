@@ -11,7 +11,7 @@ Implemented:
 - TypeScript monorepo
 - core memory pipeline
 - deterministic mock extractor
-- OpenAI-backed extractor behind `MemoryExtractor` interface
+- OpenAI-compatible extractor behind `MemoryExtractor` interface, with OpenAI API-compatible endpoints supported via `baseUrl`
 - extraction prompt design with chunking and response parsing
 - rule-based secret detection
 - noise and safety filters
