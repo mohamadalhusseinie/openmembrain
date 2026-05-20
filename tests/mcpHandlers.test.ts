@@ -17,7 +17,7 @@ async function createHandlers() {
   const projectRoot = await mkdtemp(join(tmpdir(), "openmembrain-project-test-"));
   tempDirs.push(storageDir, projectRoot);
 
-  const context = createOpenMembrainContext({
+  const context = await createOpenMembrainContext({
     defaultProjectId: "project-a",
     projectRoot,
     storageDir

@@ -19,7 +19,7 @@ if (!result.ok) {
       const { createOpenMembrainContext } = await import("./context");
       const { createOpenMembrainMcpServer } = await import("./server");
 
-      const context = createOpenMembrainContext();
+      const context = await createOpenMembrainContext();
       const server = createOpenMembrainMcpServer(context);
       await server.connect(new StdioServerTransport());
       break;

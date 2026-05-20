@@ -17,10 +17,5 @@ export {
 } from "./directoryStore";
 export type { HasTypeAndScope } from "./directoryStore";
 export { migrateMemories, migratePending } from "./migrate";
-export { openDatabase } from "./sqlite/db";
-export { SqliteMemoryStore } from "./sqlite/SqliteMemoryStore";
-export { SqlitePendingCandidateStore } from "./sqlite/SqlitePendingCandidateStore";
-export { SqliteAuditLogStore } from "./sqlite/SqliteAuditLogStore";
-export { SqliteDiagnosticsLogStore } from "./sqlite/SqliteDiagnosticsLogStore";
 export { createStores } from "./factory";
 export type { StorageBackend, StorageBackendConfig, StoreSet } from "./factory";

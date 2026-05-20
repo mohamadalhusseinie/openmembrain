@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import Database from "better-sqlite3";
-import { openDatabase } from "@openmembrain/storage";
+import { openDatabase } from "../../packages/storage/src/sqlite/db";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";

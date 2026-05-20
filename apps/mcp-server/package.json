@@ -1,6 +1,6 @@
 {
   "name": "openmembrain",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The intelligent membrane for AI memory — autonomously learns from your sessions, blocks secrets, and persists only what matters. No manual saving. Local-first, private, tool-agnostic.",
   "type": "module",
   "license": "MIT",
@@ -37,6 +37,9 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "openai": "^6.37.0",
     "zod": "^4.4.3"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.9.0"
   },
   "devDependencies": {
     "@openmembrain/core": "*",
