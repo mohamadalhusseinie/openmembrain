@@ -106,13 +106,13 @@ interface MemoryExtractor {
 }
 ```
 
-Current implementation:
+Current implementations:
 
 - `MockMemoryExtractor`
+- `OpenAiMemoryExtractor` in `packages/extractor-openai/` for OpenAI-compatible APIs, including custom base URLs through extraction config
 
 Future implementations:
 
-- OpenAI extractor
 - Anthropic extractor
 - local model extractor
 - enterprise/self-hosted extractor

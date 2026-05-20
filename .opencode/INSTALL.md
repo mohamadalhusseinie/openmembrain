@@ -74,6 +74,7 @@ config:
 }
 ```
 
+The `openai` provider value selects the registered OpenAI-compatible extractor.
 For an endpoint that implements the OpenAI API, keep the provider set to
 `openai` and set `OPENMEMBRAIN_EXTRACTION_BASE_URL` to that endpoint's base URL.
 
