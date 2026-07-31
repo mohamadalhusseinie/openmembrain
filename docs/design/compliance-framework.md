@@ -11,7 +11,7 @@ This design is upstream of [#12](https://github.com/mohamadalhusseinie/openmembr
 | Mode | Data location | Controller / processor | GDPR applies | nDSG applies | AI Act relevance | Key obligations |
 |---|---|---|---|---|---|---|
 | Local-only (current MVP) | Developer's machine only | User is both controller and processor of their own data | Only insofar as the user is a data controller for their own organization's data; OpenMembrane itself processes nothing on their behalf | Same as GDPR column | Minimal — see AI Act section | Privacy-by-design documentation only |
-| CH/EU sync (#12) | CH or EU-hosted infrastructure, user-controlled keys | OpenMembrane (or its infra provider) is processor; user/org is controller | Applies if EU-based users or EU-hosted infra | Applies directly if CH-hosted infra, per nDSG's effects-based scope (see below) | Same as local-only; sync itself doesn't change AI system classification | Encryption, DPA with infra provider, cross-border transfer assessment, data residency guarantees |
+| CH/EU sync (#12) | CH or EU-hosted infrastructure, user-controlled keys | OpenMembrane (or its infra provider) is processor; user/org is controller | Applies per Art. 3 criteria: if OpenMembrane has an EU establishment, or offers services to / monitors people in the EU — hosting region alone is not an independent trigger | Applies directly if CH-hosted infra, per nDSG's effects-based scope (see below) | Same as local-only; sync itself doesn't change AI system classification | Encryption, DPA with infra provider, cross-border transfer assessment, data residency guarantees |
 | Self-hosted (#14) | Customer's own infrastructure | Customer is controller and processor; OpenMembrane is software vendor, not a processor | Applies based on customer's jurisdiction, not OpenMembrane's | Applies based on customer's jurisdiction | Same as local-only; customer's own AI Act obligations are separate from OpenMembrane's | DPA template for customer's own downstream use, audit log support |
 | Hosted team (#13) | OpenMembrane-managed hosted infrastructure | OpenMembrane is processor; org/team is controller | Full GDPR compliance required | Full nDSG compliance required, including FDPIC notification path | Same scope assessment as below, but policy enforcement across a team increases documentation burden | DPA, ROPA, breach notification to both EU DPAs and FDPIC, data subject rights endpoints, retention policy, tenant isolation |
 
@@ -65,7 +65,12 @@ Relevant for CH/EU sync and hosted modes, and for any external LLM provider call
 
 ### Data Breach Notification
 
-Hosted/sync modes need a documented breach response process: detection, assessment, and notification to affected data controllers within GDPR's 72-hour window. See the nDSG section below for the distinct Swiss timeline and authority.
+Hosted/sync modes need a documented breach response process. Two distinct deadlines apply and must not be conflated:
+
+- **Processor → controller (Art. 33(2)):** when OpenMembrane acts as processor (CH/EU sync, hosted team), it must notify the controller (the user's organization) "without undue delay" after becoming aware of a breach. There is no fixed-hour deadline in Art. 33(2) — "without undue delay" is the standard.
+- **Controller → supervisory authority (Art. 33(1)):** the *controller* must notify the competent supervisory authority within 72 hours of becoming aware. This is the controller's obligation, not OpenMembrane's directly.
+
+The processor-to-controller escalation must leave adequate time for the controller to assess, document, and file their own notification within 72 hours. The breach process should therefore define a processor-to-controller escalation target (e.g. 24 hours) that is materially shorter than the controller's deadline. See the nDSG section below for the distinct Swiss timeline (FDPIC, "as soon as possible") and authority.
 
 ## Swiss nDSG (revFADP)
 
@@ -101,7 +106,14 @@ session transcript
   -> classification / policy / dedup / conflict detection (local)
   -> local JSON/SQLite store (.openmembrane)
 
-No data leaves the developer's machine.
+Optional provider egress (only when an external LLM is explicitly configured
+for propose_memory_from_session):
+  -> redacted transcript excerpt -> external LLM provider (extraction only)
+  -> extracted candidates returned to local pipeline (above)
+
+No stored memory leaves the developer's machine. The external LLM path is
+opt-in, explicit, and receives only redacted excerpts — not raw transcripts
+or persisted memories.
 ```
 
 ### CH/EU sync mode (#12)

@@ -16,6 +16,18 @@ The first question this design must answer, before any protocol detail: is the r
 
 Append-only means the remote store accepts new envelopes but cannot be used to retroactively alter history. Edits and deletions are represented as new envelopes (see Deletion And Tombstone Propagation below), not as mutations of previously-synced data.
 
+### Erasure And The Append-Only Constraint
+
+Append-only semantics and the compliance framework's "forget me" erasure requirement are in tension. A tombstone envelope provides logical hiding — it marks a record as deleted — but leaves the original encrypted envelope in remote storage. Since the user retains the decryption key, the original content remains technically recoverable (e.g. by a stale client or during rollback). Logical hiding alone does not satisfy GDPR Art. 17 erasure.
+
+To achieve true erasure while preserving the append-only integrity model, the protocol must support at least one of:
+
+- **Per-record crypto-shredding:** each memory envelope is encrypted with its own derived key (in addition to the user's master key). Deleting a record means destroying the per-envelope key, rendering the ciphertext unrecoverable even though the envelope remains in the append-only log. This is the preferred approach for individual record deletion.
+- **Periodic compaction:** a scheduled or on-demand process that physically removes tombstoned envelopes from remote storage after a grace period (allowing all devices to acknowledge the deletion). Compaction produces a new, shorter log that no longer contains the deleted content.
+- **Both:** crypto-shredding provides immediate logical irrecoverability; compaction provides eventual physical removal and reclaims storage.
+
+The grace period before compaction must be bounded (e.g. 30 days) and documented, so that the "without undue delay" erasure expectation from the compliance framework has a concrete, verifiable timeline.
+
 ## Encryption
 
 - **At rest and in transit:** end-to-end encryption. Keys are generated and held by the user (or the team's designated key holders in hosted team mode); the CH/EU infrastructure provider stores ciphertext only.
